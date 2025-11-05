@@ -3,61 +3,51 @@
 """
 Created on Wed Nov 29 11:23:34 2023
 
-Try reproduce Eberhard's noise threshold, via minimizing determinant of B.
-eta is efficiency. Reproduces exactly. Fast convergence.
+Reproducing Eberhard's noise threshold, via minimizing determinant of B in the SM.
+eps is efficiency. Reproduces exactly. Fast convergence.
 
 @author: s2897605
 """
 import numpy as np
 
-def paper_calculation(eta,zeta,alphadiff,betadiff):
-    A = eta/2*(np.exp(2*1j*alphadiff)-1)
-    B = np.exp(2*1j*betadiff)-1
-    xi=4*zeta/eta
-    bell_op = eta/2*np.array([[2-eta+xi, 1-eta, 1-eta, A.conjugate()*B.conjugate()-eta],
-                              [1-eta, 2-eta+xi, A*B.conjugate()-eta, 1-eta],
-                              [1-eta, A.conjugate()*B-eta, 2-eta+xi, 1-eta],
-                              [A*B-eta, 1-eta, 1-eta, 2-eta+xi]])
-    return np.real(np.linalg.det(bell_op))
-
-#taking zeta=0, i.e. no noise.
-def det_B(x, eta):
-    A = eta/2*(np.exp(2*1j*x[0])-1)
-    B = np.exp(2*1j*x[1])-1
-    bell_op = eta/2*np.array([[2-eta, 1-eta, 1-eta, A.conjugate()*B.conjugate()-eta],
-                              [1-eta, 2-eta, A*B.conjugate()-eta, 1-eta],
-                              [1-eta, A.conjugate()*B-eta, 2-eta, 1-eta],
-                              [A*B-eta, 1-eta, 1-eta, 2-eta]])
+#taking eta=0, i.e. no noise.
+def det_B(x, eps):
+    T = eps/2*(np.exp(1j*x[0])-1)
+    R = np.exp(1j*x[1])-1
+    bell_op = eps/2*np.array([[2-eps, 1-eps, 1-eps, T*R-eps],
+                              [1-eps, 2-eps, T*R.conjugate()-eps, 1-eps],
+                              [1-eps, T.conjugate()*R-eps, 2-eps, 1-eps],
+                              [T.conjugate()*R.conjugate()-eps, 1-eps, 1-eps, 2-eps]])
     return np.real(np.linalg.det(bell_op))
 
 from scipy.linalg import eigvalsh
 
-def min_eig_from_B(x,eta):
-    A = eta/2*(np.exp(2*1j*x[0])-1)
-    B = np.exp(2*1j*x[1])-1
-    bell_op = eta/2*np.array([[2-eta, 1-eta, 1-eta, A.conjugate()*B.conjugate()-eta],
-                              [1-eta, 2-eta, A*B.conjugate()-eta, 1-eta],
-                              [1-eta, A.conjugate()*B-eta, 2-eta, 1-eta],
-                              [A*B-eta, 1-eta, 1-eta, 2-eta]])
+def min_eig_from_B(x,eps):
+    T = eps/2*(np.exp(1j*x[0])-1)
+    R = np.exp(1j*x[1])-1
+    bell_op = eps/2*np.array([[2-eps, 1-eps, 1-eps, T*R-eps],
+                              [1-eps, 2-eps, T*R.conjugate()-eps, 1-eps],
+                              [1-eps, T.conjugate()*R-eps, 2-eps, 1-eps],
+                              [T.conjugate()*R.conjugate()-eps, 1-eps, 1-eps, 2-eps]])
     return np.min(np.real(eigvalsh(bell_op)))
 
 from scipy.optimize import differential_evolution
 
-def min_eig(eta):
+def min_eig(eps):
     bounds = [(0,np.pi),(0,np.pi)]
-    result = differential_evolution(det_B, bounds, args=(eta,), popsize=10)
-    return min_eig_from_B(result.x,eta)
+    result = differential_evolution(det_B, bounds, args=(eps,), popsize=10)
+    return min_eig_from_B(result.x,eps)
 
-eta_vals=np.linspace(2/3,1,1000)
-purity_cutoffs = np.empty(len(eta_vals))
-for i, eta in enumerate(eta_vals):
+eps_vals=np.linspace(2/3,1,1000)
+purity_cutoffs = np.empty(len(eps_vals))
+for i, eps in enumerate(eps_vals):
     print(i)
-    eig_min = min_eig(eta)
-    purity_cutoffs[i]= 1/(1-eta*(1-eta/2)/eig_min)
+    eig_min = min_eig(eps)
+    purity_cutoffs[i]= 1/(1-eps*(1-eps/2)/eig_min)
 
 import matplotlib.pyplot as plt
-plt.semilogy(eta_vals, 1-purity_cutoffs,'k-')
-plt.xlabel(r'$\epsilon$')
-plt.ylabel(r'$\xi$')
+plt.semilogy(eps_vals, purity_cutoffs,'k-')
+plt.xlabel(r'$\bar{\epsilon}$')
+plt.ylabel(r'$\eta$')
 
-np.savez('eberhard_noise_cutoffs_no_noise', x=eta_vals, y=purity_cutoffs)
+np.savez('eberhard_noise_cutoffs_no_noise', x=eps_vals, y=purity_cutoffs)
