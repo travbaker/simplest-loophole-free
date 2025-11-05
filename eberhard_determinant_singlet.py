@@ -4,7 +4,7 @@
 Created on Fri Feb  2 12:07:17 2024
 
 Find white-noise thresholds for Eberhard's inequality, using a 
-maximally entangled state.
+maximally entangled state, 1/sqrt(2)*(|01> + e^{i\pi/4} |10>)
 eps is efficiency.
 
 @author: s2897605
@@ -19,15 +19,14 @@ def expectation_val(x, eps):
                               [1-eps, 2-eps, T*R.conjugate()-eps, 1-eps],
                               [1-eps, T.conjugate()*R-eps, 2-eps, 1-eps],
                               [T.conjugate()*R.conjugate()-eps, 1-eps, 1-eps, 2-eps]])
-    omega = np.pi/8
-    state = 1/np.sqrt(2)*(np.exp(-1j*omega)*qt.tensor(qt.basis(2,0),qt.basis(2,0)) + np.exp(1j*omega)*qt.tensor(qt.basis(2,1),qt.basis(2,1)))
+    state = 1/np.sqrt(2)*(qt.tensor(qt.basis(2,0),qt.basis(2,1)) + np.exp(1j*np.pi/4)*qt.tensor(qt.basis(2,1),qt.basis(2,0)))
     dm = qt.ket2dm(state).full()
     return np.real(np.trace(bell_op@dm))
 
 from scipy.optimize import differential_evolution
 
 def min_expectation(eps):
-    bounds = [(-np.pi,np.pi),(-np.pi,np.pi)]
+    bounds = [(-np.pi,2*np.pi),(-np.pi,2*np.pi)]
     result = differential_evolution(expectation_val, bounds, args=(eps,), disp=False, popsize=10)
     return result.fun
 
